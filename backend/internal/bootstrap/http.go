@@ -57,6 +57,7 @@ import (
 	turnquerysvc "github.com/zyf2007/ChatAPI/internal/service/chat/turnquery"
 	workspacesvc "github.com/zyf2007/ChatAPI/internal/service/chat/workspace"
 	workspacesettings "github.com/zyf2007/ChatAPI/internal/service/chat/workspace/settings"
+	barknotify "github.com/zyf2007/ChatAPI/internal/service/notification/bark"
 	ntfynotify "github.com/zyf2007/ChatAPI/internal/service/notification/ntfy"
 	"github.com/zyf2007/ChatAPI/internal/service/usercontrol"
 	"github.com/zyf2007/ChatAPI/internal/service/usercontrol/conversationretention"
@@ -183,10 +184,15 @@ func buildChatModule(input applicationInput, auth authModule) chatModule {
 	pending := pendingsvc.NewPendingRegistry()
 	pending.Logger = logger(logging.LayerPending)
 	notifications := ntfynotify.New(store, platformntfy.NewClient(nil), logger(logging.LayerApp))
+	barkNotifications := barknotify.New(store, cfg.MasterKey, nil, logger(logging.LayerApp))
+	notifyWaiting := func(ctx context.Context, ownerID, title, userText string) {
+		notifications.NotifyWaiting(ctx, ownerID, title, userText)
+		barkNotifications.NotifyWaiting(ctx, ownerID, title, userText)
+	}
 	submitter := &turnsvc.Submitter{Store: store, Pending: pending, OutputEventLimit: func(ctx context.Context) (int, error) {
 		current, err := settings.Current(ctx)
 		return current.MaxOutputEventsPerMessage, err
-	}, Hooks: turnsvc.SubmitHooks{NotifyWaiting: notifications.NotifyWaiting}}
+	}, Hooks: turnsvc.SubmitHooks{NotifyWaiting: notifyWaiting}}
 	turn := &turnsvc.Service{Submitter: submitter, Pending: pending, Store: store, OwnerIDFromContext: actor.OwnerIDFromContext, ActorFromContext: actor.FromContext, Logger: logger(logging.LayerTurn)}
 	control := controlsvc.New(query, turn, logger(logging.LayerTurnQuery))
 	timeline := timelinesvc.New(store, logger(logging.LayerTurnQuery))
