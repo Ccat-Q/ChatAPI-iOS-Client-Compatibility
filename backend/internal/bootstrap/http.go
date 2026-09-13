@@ -273,5 +273,6 @@ func buildRouter(input applicationInput, auth authModule, chat chatModule, admin
 		Readiness: httphandler.ReadinessHandler{Service: readiness.NewService(cfg, input.store)},
 		Setup:     httphandler.SetupHandler{Service: setup.NewService(input.store, cfg)},
 		Metrics:   httphandler.MetricsHandler{Registry: httpmetrics.NewRegistry()},
+		Mobile:    httphandler.MobileHandler{Config: cfg, UserControl: admin.user},
 	}
 }

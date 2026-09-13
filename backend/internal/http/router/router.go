@@ -40,6 +40,7 @@ type Deps struct {
 	Readiness httphandler.ReadinessHandler
 	Setup     httphandler.SetupHandler
 	Metrics   httphandler.MetricsHandler
+	Mobile    httphandler.MobileHandler
 }
 
 func New(deps Deps) http.Handler {
@@ -79,6 +80,7 @@ func New(deps Deps) http.Handler {
 	readinessHandler := deps.Readiness
 	setupHandler := deps.Setup
 	metricsHandler := deps.Metrics
+	mobileHandler := deps.Mobile
 
 	modelAuth := httpmiddleware.RequireModelAPIKey(deps.ModelAPIKeys, authLogger)
 	modelPrincipalAccess := httpmiddleware.RequirePrincipalAccess(deps.Access, authLogger)
@@ -122,6 +124,10 @@ func New(deps Deps) http.Handler {
 	router.Post("/api/auth/login", authHandler.Login)
 	router.Post("/api/auth/logout", authHandler.Logout)
 	router.Get("/api/auth/session", userHandler.Session)
+	router.With(userAuth, userPrincipalAccess).Get("/api/mobile/v1/capabilities", mobileHandler.Capabilities)
+	router.With(userAuth, userPrincipalAccess).Get("/api/mobile/v1/notifications/bark", mobileHandler.Bark)
+	router.With(userAuth, userPrincipalAccess).Put("/api/mobile/v1/notifications/bark", mobileHandler.Bark)
+	router.With(userAuth, userPrincipalAccess).Post("/api/mobile/v1/notifications/bark/test", mobileHandler.TestBark)
 	router.Get("/api/auth/oidc/config", authHandler.OIDCConfig)
 	router.Get("/api/auth/oidc/login", authHandler.OIDCLogin)
 	router.With(userAuth, userPrincipalAccess).Get("/api/auth/oidc/link", authHandler.OIDCLink)
